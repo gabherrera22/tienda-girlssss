@@ -1,12 +1,10 @@
 package com.girlssss.pedidos.controller;
 
 import com.girlssss.pedidos.model.Pedido;
-import com.girlssss.pedidos.repository.PedidoRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.girlssss.pedidos.service.PedidoService;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.girlssss.pedidos.repository.PedidoRepository;
-import com.girlssss.pedidos.model.Pedido;
 
 import java.util.List;
 
@@ -14,21 +12,40 @@ import java.util.List;
 @RequestMapping("/api/pedidos")
 public class PedidoController {
 
-    @Autowired
-    private PedidoRepository pedidoRepository;
+    private final PedidoService pedidoService;
 
-    @GetMapping
-    public List<Pedido> obtenerTodos() {
-        return pedidoRepository.findAll();
+    public PedidoController(PedidoService pedidoService) {
+        this.pedidoService = pedidoService;
     }
 
-    @GetMapping("/usuario/{usuarioId}")
-    public List<Pedido> obtenerPorUsuario(@PathVariable Long usuarioId) {
-        return pedidoRepository.findByUsuarioId(usuarioId);
+    @GetMapping
+    public List<Pedido> listar() {
+        return pedidoService.listarPedidos();
+    }
+
+    @GetMapping("/{id}")
+    public Pedido buscar(@PathVariable Long id) {
+        return pedidoService.buscarPorId(id);
     }
 
     @PostMapping
-    public Pedido crearPedido(@RequestBody Pedido pedido) {
-        return pedidoRepository.save(pedido);
+    public Pedido crear(@RequestBody Pedido pedido) {
+        return pedidoService.guardar(pedido);
+    }
+
+    @PutMapping("/{id}")
+    public Pedido actualizar(
+            @PathVariable Long id,
+            @RequestBody Pedido pedido) {
+
+        return pedidoService.actualizar(id, pedido);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+
+        pedidoService.eliminar(id);
+
+        return ResponseEntity.noContent().build();
     }
 }

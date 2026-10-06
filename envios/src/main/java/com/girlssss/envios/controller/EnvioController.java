@@ -1,8 +1,7 @@
 package com.girlssss.envios.controller;
 
 import com.girlssss.envios.model.Envio;
-import com.girlssss.envios.repository.EnvioRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.girlssss.envios.service.EnvioService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,23 +11,37 @@ import java.util.List;
 @RequestMapping("/api/envios")
 public class EnvioController {
 
-    @Autowired
-    private EnvioRepository envioRepository;
+    private final EnvioService envioService;
 
-    @GetMapping
-    public List<Envio> obtenerTodos() {
-        return envioRepository.findAll();
+    public EnvioController(EnvioService envioService) {
+        this.envioService = envioService;
     }
 
-    @GetMapping("/pedido/{pedidoId}")
-    public ResponseEntity<Envio> obtenerPorPedido(@PathVariable Long pedidoId) {
-        return envioRepository.findByPedidoId(pedidoId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    @GetMapping
+    public List<Envio> listar() {
+        return envioService.listarEnvios();
+    }
+
+    @GetMapping("/{id}")
+    public Envio buscar(@PathVariable Long id) {
+        return envioService.buscarPorId(id);
     }
 
     @PostMapping
-    public Envio registrarEnvio(@RequestBody Envio envio) {
-        return envioRepository.save(envio);
+    public Envio crear(@RequestBody Envio envio) {
+        return envioService.guardar(envio);
+    }
+
+    @PutMapping("/{id}")
+    public Envio actualizar(
+            @PathVariable Long id,
+            @RequestBody Envio envio) {
+        return envioService.actualizar(id, envio);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        envioService.eliminar(id);
+        return ResponseEntity.noContent().build();
     }
 }

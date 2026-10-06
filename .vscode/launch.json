@@ -8,8 +8,7 @@
             "mainClass": "com.girlssss.productos.ProductosApplication",
             "projectName": "productos",
             "args": "",
-            "envFile": "${workspaceFolder}/.env",
-            "vmArgs": " -Dcom.sun.management.jmxremote"
+            "envFile": "${workspaceFolder}/.env"
         },
         {
             "type": "java",
@@ -19,8 +18,7 @@
             "mainClass": "com.girlssss.pedidos.PedidosApplication",
             "projectName": "pedidos",
             "args": "",
-            "envFile": "${workspaceFolder}/.env",
-            "vmArgs": " -Dcom.sun.management.jmxremote"
+            "envFile": "${workspaceFolder}/.env"
         },
         {
             "type": "java",

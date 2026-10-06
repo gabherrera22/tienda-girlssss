@@ -26,9 +26,12 @@ public class Producto {
     private Integer stockActual;
 
     private Boolean activo = true;
-    public Producto() {}
 
-    public Producto(String sku, String nombre, String descripcion, BigDecimal precio, Integer stockActual) {
+    public Producto() {
+    }
+
+    public Producto(String sku, String nombre, String descripcion,
+                    BigDecimal precio, Integer stockActual) {
         this.sku = sku;
         this.nombre = nombre;
         this.descripcion = descripcion;
@@ -37,24 +40,59 @@ public class Producto {
         this.activo = true;
     }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getSku() { return sku; }
-    public void setSku(String sku) { this.sku = sku; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getNombre() { return nombre; }
-    public void setNombre(String nombre) { this.nombre = nombre; }
+    public String getSku() {
+        return sku;
+    }
 
-    public String getDescripcion() { return descripcion; }
-    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+    public void setSku(String sku) {
+        this.sku = sku;
+    }
 
-    public BigDecimal getPrecio() { return precio; }
-    public void setPrecio(BigDecimal precio) { this.precio = precio; }
+    public String getNombre() {
+        return nombre;
+    }
 
-    public Integer getStockActual() { return stockActual; }
-    public void setStockActual(Integer stockActual) { this.stockActual = stockActual; }
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
 
-    public Boolean getActivo() { return activo; }
-    public void setActivo(Boolean activo) { this.activo = activo; }
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
+
+    public BigDecimal getPrecio() {
+        return precio;
+    }
+
+    public void setPrecio(BigDecimal precio) {
+        this.precio = precio;
+    }
+
+    public Integer getStockActual() {
+        return stockActual;
+    }
+
+    public void setStockActual(Integer stockActual) {
+        this.stockActual = stockActual;
+    }
+
+    public Boolean getActivo() {
+        return activo;
+    }
+
+    public void setActivo(Boolean activo) {
+        this.activo = activo;
+    }
 }

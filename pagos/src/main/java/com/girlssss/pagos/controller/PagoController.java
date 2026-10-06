@@ -1,8 +1,7 @@
 package com.girlssss.pagos.controller;
 
 import com.girlssss.pagos.model.Pago;
-import com.girlssss.pagos.repository.PagoRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.girlssss.pagos.service.PagoService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,23 +11,37 @@ import java.util.List;
 @RequestMapping("/api/pagos")
 public class PagoController {
 
-    @Autowired
-    private PagoRepository pagoRepository;
+    private final PagoService pagoService;
 
-    @GetMapping
-    public List<Pago> obtenerTodos() {
-        return pagoRepository.findAll();
+    public PagoController(PagoService pagoService) {
+        this.pagoService = pagoService;
     }
 
-    @GetMapping("/pedido/{pedidoId}")
-    public ResponseEntity<Pago> obtenerPorPedido(@PathVariable Long pedidoId) {
-        return pagoRepository.findByPedidoId(pedidoId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    @GetMapping
+    public List<Pago> listar() {
+        return pagoService.listarPagos();
+    }
+
+    @GetMapping("/{id}")
+    public Pago buscar(@PathVariable Long id) {
+        return pagoService.buscarPorId(id);
     }
 
     @PostMapping
-    public Pago procesarPago(@RequestBody Pago pago) {
-        return pagoRepository.save(pago);
+    public Pago crear(@RequestBody Pago pago) {
+        return pagoService.guardar(pago);
+    }
+
+    @PutMapping("/{id}")
+    public Pago actualizar(
+            @PathVariable Long id,
+            @RequestBody Pago pago) {
+        return pagoService.actualizar(id, pago);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        pagoService.eliminar(id);
+        return ResponseEntity.noContent().build();
     }
 }
