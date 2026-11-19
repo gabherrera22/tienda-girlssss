@@ -18,7 +18,7 @@ crear_nodo() {
     echo "$nombre ya existe"
     return
   fi
-  docker run -d --privileged --name "$nombre" --hostname "$nombre" --network "$RED" \
+  docker run -d --restart unless-stopped --privileged --name "$nombre" --hostname "$nombre" --network "$RED" \
     -e DOCKER_TLS_CERTDIR="" "$@" \
     docker:27-dind --insecure-registry=registry:5000
 }
