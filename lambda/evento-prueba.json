@@ -1,0 +1,9 @@
+{
+  "Records": [
+    {
+      "messageId": "prueba-0001",
+      "body": "{\"pedidoId\":1,\"usuarioId\":7,\"montoTotal\":9990,\"estado\":\"PENDIENTE\"}",
+      "eventSource": "aws:sqs"
+    }
+  ]
+}
