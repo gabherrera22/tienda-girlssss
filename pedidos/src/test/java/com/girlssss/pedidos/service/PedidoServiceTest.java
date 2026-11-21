@@ -13,6 +13,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -20,6 +21,9 @@ class PedidoServiceTest {
 
     @Mock
     PedidoRepository repository;
+
+    @Mock
+    SqsPublisher sqsPublisher;
 
     @InjectMocks
     PedidoService service;
@@ -30,6 +34,16 @@ class PedidoServiceTest {
         when(repository.save(p)).thenReturn(p);
 
         assertEquals("PENDIENTE", service.guardar(p).getEstado());
+    }
+
+    @Test
+    void guardar_publicaElPedidoEnLaCola() {
+        Pedido p = new Pedido(1L, new BigDecimal("15000"));
+        when(repository.save(p)).thenReturn(p);
+
+        service.guardar(p);
+
+        verify(sqsPublisher).publicarPedidoCreado(p);
     }
 
     @Test

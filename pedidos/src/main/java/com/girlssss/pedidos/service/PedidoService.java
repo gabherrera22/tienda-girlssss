@@ -11,9 +11,11 @@ import java.util.List;
 public class PedidoService {
 
     private final PedidoRepository pedidoRepository;
+    private final SqsPublisher sqsPublisher;
 
-    public PedidoService(PedidoRepository pedidoRepository) {
+    public PedidoService(PedidoRepository pedidoRepository, SqsPublisher sqsPublisher) {
         this.pedidoRepository = pedidoRepository;
+        this.sqsPublisher = sqsPublisher;
     }
 
     public List<Pedido> listarPedidos() {
@@ -26,7 +28,10 @@ public class PedidoService {
     }
 
     public Pedido guardar(Pedido pedido) {
-        return pedidoRepository.save(pedido);
+        Pedido guardado = pedidoRepository.save(pedido);
+        // Productor: avisa por la cola que hay un pedido nuevo.
+        sqsPublisher.publicarPedidoCreado(guardado);
+        return guardado;
     }
 
     public Pedido actualizar(Long id, Pedido pedido) {
