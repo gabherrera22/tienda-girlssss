@@ -1,0 +1,144 @@
+name: CI/CD Tienda Girlssss
+
+# - En un pull request hacia develop: solo compila y prueba (no toca la nube).
+# - En un push a develop o main: compila, prueba, prepara la nube, publica las
+#   imagenes en ECR, despliega en la EC2 y hace una prueba de humo por el API Gateway.
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # ETAPA 1: build y test de cada microservicio (en paralelo), con un MySQL temporal
+  # ---------------------------------------------------------------------------
+  build-test:
+    name: Build y test (${{ matrix.servicio }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        servicio: [usuarios, productos, pedidos, pagos, envios]
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root-pass   # contrasena desechable, solo existe durante la prueba
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pci-root-pass"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      DB_USER: root
+      DB_PASSWORD: ci-root-pass
+    steps:
+      - name: Descargar el codigo
+        uses: actions/checkout@v4
+
+      - name: Instalar Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Crear las bases de datos de prueba
+        run: mysql -h 127.0.0.1 -uroot -pci-root-pass < scripts-db/init-databases.sql
+
+      - name: Compilar y ejecutar tests
+        working-directory: ${{ matrix.servicio }}
+        run: |
+          chmod +x mvnw
+          ./mvnw -B -ntp verify
+
+  # ---------------------------------------------------------------------------
+  # ETAPAS 2 a 8: nube (solo en push a develop/main o ejecucion manual)
+  # ---------------------------------------------------------------------------
+  desplegar:
+    name: Provisionar nube y desplegar
+    needs: build-test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: despliegue-aws
+      cancel-in-progress: false
+    steps:
+      - name: Descargar el codigo
+        uses: actions/checkout@v4
+
+      - name: Credenciales de AWS (AWS Academy)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Nube 1 - Cola SQS
+        run: bash aws/scripts/01-crear-cola.sh
+
+      - name: Nube 2 - Repositorios ECR
+        run: bash aws/scripts/02-crear-ecr.sh
+
+      - name: Nube 3 - Funcion Lambda y conexion con la cola
+        run: bash lambda/deploy.sh
+
+      - name: Imagenes - construir y publicar en ECR (etiqueta = SHA del commit)
+        run: |
+          bash aws/scripts/03-publicar-imagenes-ecr.sh
+          echo "IMAGE_TAG=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+
+      - name: Acceso SSH temporal para este runner
+        run: |
+          RUNNER_IP=$(curl -s https://checkip.amazonaws.com)
+          SG_ID=$(aws ec2 describe-security-groups --filters Name=group-name,Values=tienda-sg \
+            --query 'SecurityGroups[0].GroupId' --output text)
+          aws ec2 authorize-security-group-ingress --group-id "$SG_ID" \
+            --protocol tcp --port 22 --cidr "$RUNNER_IP/32" >/dev/null
+          echo "RUNNER_IP=$RUNNER_IP" >> "$GITHUB_ENV"
+          echo "SG_ID=$SG_ID" >> "$GITHUB_ENV"
+          mkdir -p ~/.ssh
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/labsuser.pem
+          chmod 600 ~/.ssh/labsuser.pem
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Despliegue - actualizar la EC2
+        run: bash aws/scripts/05-desplegar-ec2.sh
+
+      - name: Cerrar el acceso SSH temporal
+        if: always()
+        run: |
+          if [ -n "${SG_ID:-}" ] && [ -n "${RUNNER_IP:-}" ]; then
+            aws ec2 revoke-security-group-ingress --group-id "$SG_ID" \
+              --protocol tcp --port 22 --cidr "$RUNNER_IP/32" >/dev/null || true
+          fi
+          rm -f ~/.ssh/labsuser.pem
+
+      - name: Nube 4 - API Gateway
+        run: bash aws/scripts/06-crear-api-gateway.sh
+
+      - name: Prueba de humo por el API Gateway
+        run: |
+          API_ID=$(aws apigateway get-rest-apis --query "items[?name=='tienda-api'].id | [0]" --output text)
+          KEY_ID=$(aws apigateway get-api-keys --name-query tienda-cliente-web --query 'items[0].id' --output text)
+          CLAVE=$(aws apigateway get-api-key --api-key "$KEY_ID" --include-value --query value --output text)
+          echo "::add-mask::$CLAVE"
+          URL="https://$API_ID.execute-api.$AWS_REGION.amazonaws.com/prod"
+          code=000
+          for i in $(seq 1 18); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -H "x-api-key: $CLAVE" "$URL/api/productos" || true)
+            echo "intento $i: HTTP $code"
+            [ "$code" = "200" ] && break
+            sleep 10
+          done
+          [ "$code" = "200" ]
+          echo "Sistema accesible en $URL"
