@@ -51,7 +51,7 @@ jobs:
           cache: maven
 
       - name: Crear las bases de datos de prueba
-        run: mysql -h 127.0.0.1 -uroot -pci-root-pass < scripts-db/init-databases.sql
+        run: grep -v -i -E "^[[:space:]]*(GRANT|FLUSH)" scripts-db/init-databases.sql | mysql -h 127.0.0.1 -uroot -pci-root-pass
 
       - name: Compilar y ejecutar tests
         working-directory: ${{ matrix.servicio }}
