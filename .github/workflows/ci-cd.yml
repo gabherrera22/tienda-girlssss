@@ -90,6 +90,8 @@ jobs:
 
       - name: Nube 3 - Funcion Lambda y conexion con la cola
         run: bash lambda/deploy.sh
+        env:
+          NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
 
       - name: Imagenes - construir y publicar en ECR (etiqueta = SHA del commit)
         run: |
