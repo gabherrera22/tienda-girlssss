@@ -9,3 +9,4 @@ salida.json
 *.pem
 function.zip
 salida.json
+.integracion-tmp.json
