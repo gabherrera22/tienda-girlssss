@@ -6,3 +6,6 @@ target/
 *.iml
 HELP.mdfunction.zip
 salida.json
+*.pem
+function.zip
+salida.json
