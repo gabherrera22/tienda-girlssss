@@ -137,6 +137,9 @@ jobs:
       - name: Nube 4 - API Gateway
         run: bash aws/scripts/06-crear-api-gateway.sh
 
+      - name: Nube 5 - Monitoreo con CloudWatch (alarmas y panel)
+        run: bash aws/scripts/07-crear-monitoreo.sh
+
       - name: Prueba de humo por el API Gateway
         run: |
           API_ID=$(aws apigateway get-rest-apis --query "items[?name=='tienda-api'].id | [0]" --output text)
