@@ -1,0 +1,62 @@
+map_hash_bucket_size 128;
+# Unica puerta de entrada al backend en la nube.
+# Solo deja pasar las peticiones que traen la cabecera secreta que agrega el API Gateway.
+# Las demas reciben 403, de modo que no se puede saltar el gateway.
+
+map $http_x_origin_verify $acceso_permitido {
+    default 0;
+    "${GATEWAY_SECRET}" 1;
+}
+
+server {
+    listen 80;
+    server_name _;
+
+    # Resolucion de nombres de Docker en cada peticion (el backend puede reiniciarse)
+    resolver 127.0.0.11 valid=10s;
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    location = /health {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    location /api/usuarios {
+        if ($acceso_permitido = 0) { return 403; }
+        set $destino http://usuarios:8081;
+        proxy_pass $destino;
+    }
+
+    location /api/productos {
+        if ($acceso_permitido = 0) { return 403; }
+        set $destino http://productos:8082;
+        proxy_pass $destino;
+    }
+
+    location /api/pedidos {
+        if ($acceso_permitido = 0) { return 403; }
+        set $destino http://pedidos:8083;
+        proxy_pass $destino;
+    }
+
+    location /api/pagos {
+        if ($acceso_permitido = 0) { return 403; }
+        set $destino http://pagos:8084;
+        proxy_pass $destino;
+    }
+
+    location /api/envios {
+        if ($acceso_permitido = 0) { return 403; }
+        set $destino http://envios:8085;
+        proxy_pass $destino;
+    }
+
+    location / {
+        return 404;
+    }
+}

@@ -74,3 +74,8 @@ fi
 echo ">> Listo"
 echo "   Funcion: $FUNCION"
 echo "   Topico:  $TOPIC_ARN"
+# Asegura que la conexion cola -> Lambda quede activa (si estaba Disabled, la reactiva)
+UUID_MAPEO=$(aws lambda list-event-source-mappings --function-name "$FUNCION" --region "$REGION" \
+  --event-source-arn "$COLA_ARN" --query 'EventSourceMappings[0].UUID' --output text)
+aws lambda update-event-source-mapping --uuid "$UUID_MAPEO" --region "$REGION" --enabled \
+  --query State --output text

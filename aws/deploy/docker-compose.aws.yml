@@ -1,0 +1,125 @@
+# Despliegue en la nube (EC2). Las imagenes vienen de ECR.
+# Solo nginx publica un puerto (80); los microservicios quedan en la red interna.
+name: tienda
+
+x-java: &java
+  JAVA_TOOL_OPTIONS: "-Xmx192m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
+
+services:
+
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: tienda
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init-databases.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - tienda-net
+
+  usuarios:
+    image: ${ECR_REGISTRY}/tienda/usuarios:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    mem_limit: 384m
+    environment:
+      <<: *java
+      DB_URL: jdbc:mysql://mysql:3306/usuarios_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USER: tienda
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - tienda-net
+
+  productos:
+    image: ${ECR_REGISTRY}/tienda/productos:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    mem_limit: 384m
+    environment:
+      <<: *java
+      DB_URL: jdbc:mysql://mysql:3306/productos_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USER: tienda
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - tienda-net
+
+  pedidos:
+    image: ${ECR_REGISTRY}/tienda/pedidos:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    mem_limit: 384m
+    environment:
+      <<: *java
+      DB_URL: jdbc:mysql://mysql:3306/pedidos_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USER: tienda
+      DB_PASSWORD: ${DB_PASSWORD}
+      SQS_QUEUE_URL: ${SQS_QUEUE_URL}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - tienda-net
+
+  pagos:
+    image: ${ECR_REGISTRY}/tienda/pagos:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    mem_limit: 384m
+    environment:
+      <<: *java
+      DB_URL: jdbc:mysql://mysql:3306/pagos_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USER: tienda
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - tienda-net
+
+  envios:
+    image: ${ECR_REGISTRY}/tienda/envios:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    mem_limit: 384m
+    environment:
+      <<: *java
+      DB_URL: jdbc:mysql://mysql:3306/envios_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USER: tienda
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - tienda-net
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    environment:
+      GATEWAY_SECRET: ${GATEWAY_SECRET}
+      NGINX_ENVSUBST_FILTER: ^GATEWAY_
+    volumes:
+      - ./nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
+    ports:
+      - "80:80"
+    networks:
+      - tienda-net
+
+volumes:
+  mysql_data:
+
+networks:
+  tienda-net:
+    driver: bridge
