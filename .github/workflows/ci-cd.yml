@@ -108,8 +108,17 @@ jobs:
           echo "RUNNER_IP=$RUNNER_IP" >> "$GITHUB_ENV"
           echo "SG_ID=$SG_ID" >> "$GITHUB_ENV"
           mkdir -p ~/.ssh
-          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/labsuser.pem
+          # Quita retornos de carro de Windows y deja la clave con el formato correcto
+          printf '%s\n' "$EC2_SSH_KEY" | tr -d '\r' > ~/.ssh/labsuser.pem
           chmod 600 ~/.ssh/labsuser.pem
+          # Comprueba que la clave es valida (no muestra su contenido)
+          if ssh-keygen -y -f ~/.ssh/labsuser.pem >/dev/null 2>&1; then
+            echo "Clave SSH valida"
+          else
+            echo "ERROR: el secreto EC2_SSH_KEY no es una clave privada valida."
+            echo "Vuelve a crearlo con el contenido completo del .pem (lineas BEGIN y END incluidas)."
+            exit 1
+          fi
         env:
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
 

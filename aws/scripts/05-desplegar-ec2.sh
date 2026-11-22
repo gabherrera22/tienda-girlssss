@@ -43,10 +43,15 @@ fi
 echo ">> Destino: ec2-user@$IP"
 
 echo ">> Esperando a que la instancia acepte SSH y tenga Docker"
+ERR=""
 for i in $(seq 1 30); do
-  if ssh $SSH_OPTS "ec2-user@$IP" "docker compose version" >/dev/null 2>&1; then break; fi
+  if ERR=$(ssh $SSH_OPTS "ec2-user@$IP" "docker compose version" 2>&1); then break; fi
   sleep 10
-  [ "$i" -eq 30 ] && { echo "La instancia no respondio a tiempo"; exit 1; }
+  if [ "$i" -eq 30 ]; then
+    echo "La instancia no respondio a tiempo. Ultimo error de SSH:"
+    echo "$ERR" | grep -v '^\*\*' | tail -5
+    exit 1
+  fi
 done
 
 echo ">> Subiendo archivos"
