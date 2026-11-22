@@ -50,8 +50,9 @@ cola creada con `aws/scripts/01-crear-cola.sh`.
 
 ```bash
 export NOTIFY_EMAIL="tu-correo@ejemplo.cl"
-# Opcional, cuando el microservicio pagos ya está en la nube:
-# export PAGOS_URL="http://<ip-publica>:8084"
+# No definas PAGOS_URL en el despliegue actual: el microservicio pagos no es accesible
+# desde internet (solo se llega por nginx, que exige una cabecera secreta que esta
+# función no envía). Sin PAGOS_URL, la función solo publica la notificación en SNS.
 
 bash lambda/deploy.sh
 ```
