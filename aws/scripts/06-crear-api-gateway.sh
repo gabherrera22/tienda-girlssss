@@ -114,8 +114,11 @@ else
   echo "   ya existe"
 fi
 
-aws apigateway create-usage-plan-key --region "$REGION" --usage-plan-id "$PLAN_ID" \
-  --key-id "$KEY_ID" --key-type API_KEY >/dev/null 2>&1 || true
+# Asocia la clave al plan; si ya estaba asociada se ignora, cualquier otro error se muestra.
+if ! SALIDA=$(aws apigateway create-usage-plan-key --region "$REGION" --usage-plan-id "$PLAN_ID" \
+  --key-id "$KEY_ID" --key-type API_KEY 2>&1); then
+  echo "$SALIDA" | grep -q ConflictException || { echo "$SALIDA"; exit 1; }
+fi
 
 URL="https://$API_ID.execute-api.$REGION.amazonaws.com/$ETAPA"
 echo
@@ -124,3 +127,6 @@ echo "   URL base:  $URL"
 echo "   Ejemplo:   $URL/api/productos"
 echo "   Tu API key (no la pegues en el chat ni la subas a Git):"
 echo "   aws apigateway get-api-key --api-key $KEY_ID --include-value --query value --output text"
+echo
+echo "   Nota: API Gateway tarda entre 30 y 60 segundos en aplicar claves y planes nuevos."
+echo "   Si justo despues recibes 403, espera un minuto y repite."
