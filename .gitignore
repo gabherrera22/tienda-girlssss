@@ -1,0 +1,14 @@
+target/
+*.log
+.env
+.idea/
+.vscode/
+*.iml
+HELP.mdfunction.zip
+salida.json
+*.pem
+function.zip
+salida.json
+.integracion-tmp.json
+.panel-tmp.json
+.panel-tmp.json
