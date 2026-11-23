@@ -199,3 +199,7 @@ bash swarm/scripts/99-destruir.sh
 - Con una réplica por servicio hay una breve interrupción mientras Swarm
   reubica un servicio tras la caída de un nodo. Los servicios críticos
   (por ejemplo `pagos`) deberían ejecutarse con dos o más réplicas en nodos distintos.
+
+## Nota sobre los archivos de definicion
+
+`swarm/stack.yml` es el `docker-compose.yml` adaptado para Docker Swarm (usa `deploy`, `secrets` y `configs`, que Swarm interpreta). El `docker-compose.yml` de la raiz del repositorio es la version para ejecutar en local con `docker compose`.
